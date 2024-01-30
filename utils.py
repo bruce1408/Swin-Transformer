@@ -176,6 +176,12 @@ def reduce_tensor(tensor):
     return rt
 
 
+def reduce_tensor_single_gpu(tensor):
+    # 在单卡模式下，直接返回原始张量的副本即可
+    return tensor.clone()
+
+
+
 def ampscaler_get_grad_norm(parameters, norm_type: float = 2.0) -> torch.Tensor:
     if isinstance(parameters, torch.Tensor):
         parameters = [parameters]

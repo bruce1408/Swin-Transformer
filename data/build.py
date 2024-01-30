@@ -40,14 +40,63 @@ try:
 except:
     from timm.data.transforms import _pil_interp
 
+import torch
+import numpy as np
+from torch.utils.data import DataLoader, SequentialSampler, RandomSampler, SubsetRandomSampler
+
+def build_loader_single_gpu(config):
+    config.defrost()
+    dataset_train, config.MODEL.NUM_CLASSES = build_dataset(is_train=True, config=config)
+    config.freeze()
+    print("Successfully built train dataset")
+
+    dataset_val, _ = build_dataset(is_train=False, config=config)
+    print("Successfully built val dataset")
+
+    # 对于单卡训练，我们不需要使用 DistributedSampler
+    sampler_train = RandomSampler(dataset_train)
+
+    if config.TEST.SEQUENTIAL:
+        sampler_val = SequentialSampler(dataset_val)
+    else:
+        sampler_val = RandomSampler(dataset_val)
+
+    data_loader_train = DataLoader(
+        dataset_train, sampler=sampler_train,
+        batch_size=config.DATA.BATCH_SIZE,
+        num_workers=config.DATA.NUM_WORKERS,
+        pin_memory=config.DATA.PIN_MEMORY,
+        drop_last=True,
+    )
+
+    data_loader_val = DataLoader(
+        dataset_val, sampler=sampler_val,
+        batch_size=config.DATA.BATCH_SIZE,
+        shuffle=False,
+        num_workers=config.DATA.NUM_WORKERS,
+        pin_memory=config.DATA.PIN_MEMORY,
+        drop_last=False
+    )
+
+    # setup mixup / cutmix
+    mixup_fn = None
+    mixup_active = config.AUG.MIXUP > 0 or config.AUG.CUTMIX > 0. or config.AUG.CUTMIX_MINMAX is not None
+    if mixup_active:
+        mixup_fn = Mixup(
+            mixup_alpha=config.AUG.MIXUP, cutmix_alpha=config.AUG.CUTMIX, cutmix_minmax=config.AUG.CUTMIX_MINMAX,
+            prob=config.AUG.MIXUP_PROB, switch_prob=config.AUG.MIXUP_SWITCH_PROB, mode=config.AUG.MIXUP_MODE,
+            label_smoothing=config.MODEL.LABEL_SMOOTHING, num_classes=config.MODEL.NUM_CLASSES)
+
+    return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn
+
 
 def build_loader(config):
     config.defrost()
     dataset_train, config.MODEL.NUM_CLASSES = build_dataset(is_train=True, config=config)
     config.freeze()
-    print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
+    # print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
     dataset_val, _ = build_dataset(is_train=False, config=config)
-    print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
+    # print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
 
     num_tasks = dist.get_world_size()
     global_rank = dist.get_rank()
@@ -55,6 +104,7 @@ def build_loader(config):
         indices = np.arange(dist.get_rank(), len(dataset_train), dist.get_world_size())
         sampler_train = SubsetRandomSampler(indices)
     else:
+        
         sampler_train = torch.utils.data.DistributedSampler(
             dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
         )
