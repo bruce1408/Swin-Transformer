@@ -16,7 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
+# import torch.distributed as dist
 
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import accuracy, AverageMeter
@@ -45,7 +45,7 @@ def parse_option():
     )
 
     # easy config modification
-    parser.add_argument('--batch-size', type=int, default=64, help="batch size for single GPU")
+    parser.add_argument('--batch-size', type=int, default=1, help="batch size for single GPU")
     parser.add_argument('--data-path', type=str, default="/mnt/share_disk/cdd/eval_data/imagenet/", help='path to dataset')
     parser.add_argument('--zip', action='store_true', help='use zipped dataset instead of folder dataset')
     parser.add_argument('--cache-mode', type=str, default='part', choices=['no', 'full', 'part'],
@@ -93,12 +93,12 @@ def parse_option():
 
 def main(config, args):
     dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config, args.dist)
-    logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
+    # logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
-    logger.info(str(model))
+    # logger.info(str(model))
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.info(f"number of params: {n_parameters}")
+    # logger.info(f"number of params: {n_parameters}")
     if hasattr(model, 'flops'):
         flops = model.flops()
         logger.info(f"number of GFLOPs: {flops / 1e9}")
