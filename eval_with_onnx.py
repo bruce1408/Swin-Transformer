@@ -177,8 +177,8 @@ def parse_option():
     parser.add_argument('--zip', action='store_true', help='use zipped dataset instead of folder dataset')
     parser.add_argument('--cache-mode', type=str, default='part', choices=['no', 'full', 'part'],
                         help='no: no cache, '
-                             'full: cache all data, '
-                             'part: sharding the dataset into nonoverlapping pieces and only cache one piece')
+                            'full: cache all data, '
+                            'part: sharding the dataset into nonoverlapping pieces and only cache one piece')
     parser.add_argument('--pretrained',
                         help='pretrained weight from checkpoint, could be imagenet22k pretrained weight')
     parser.add_argument('--resume', default="/mnt/share_disk/cdd/pretrained_models/swin_tiny_patch4_window7_224.pth", help='resume from checkpoint')
@@ -205,11 +205,13 @@ def parse_option():
     parser.add_argument('--fused_window_process', action='store_true',
                         help='Fused window shift & window partition, similar for reversed part.')
     parser.add_argument('--fused_layernorm', action='store_true', help='Use fused layernorm.')
-    ## overwrite optimizer in config (*.yaml) if specified, e.g., fused_adam/fused_lamb
-    parser.add_argument('--optim', type=str,
+    parser.add_argument('--optim', 
+                        type=str,
                         help='overwrite optimizer if provided, can be adamw/sgd/fused_adam/fused_lamb.')
     
-    parser.add_argument("--dist", default=False, help="describe if use multi distribution to train/val")
+    parser.add_argument("--dist", 
+                        default=False, 
+                        help="describe if use multi distribution to train/val")
 
     args, unparsed = parser.parse_known_args()
     config = get_config(args)
@@ -225,43 +227,61 @@ def print_info(info, _type=None):
                 cprint(i, _type[0], attrs=[_type[1]])
     else:
         print(info)
-        
 
-def print_colored_box(text, text_color='white', box_color='green'):
+def print_colored_box_line(title, message, attrs=['bold'], text_color='white', box_color='yellow'):
+    # 定义方框的宽度为终端的宽度，这里假定为80字符宽
+    box_width = 80
     
-    bold_start = "\033[1m"
-    bold_end = "\033[0m"
+    # 创建顶部和底部的边框
+    horizontal_border = '+' + '-' * (box_width - 2) + '+'
+    colored_horizontal_border = colored(horizontal_border, box_color, attrs=attrs)
     
+    # 创建标题和消息文本，使其居中
+    title_text = f"| {title.center(box_width - 4)} |"
+    message_text = f"| {message.center(box_width - 4)} |"
+    
+    # 添加颜色到文本，并使其加粗
+    colored_title = colored(title_text, text_color, 'on_' + box_color, attrs=attrs)
+    colored_message = colored(message_text, text_color, 'on_' + box_color, attrs=attrs)
+    
+    # 打印方框
+    print(colored_horizontal_border)
+    print(colored_title)
+    print(colored_horizontal_border)
+    print(colored_message)
+    print(colored_horizontal_border)
+    
+    
+def print_colored_box(text, text_background=False, text_color='white', box_color='green', background_color='on_white'):
     # 测量文本长度，并为方框的左右添加空格
     padded_text = " " + text + " "
     text_length = len(padded_text)
     
     # 生成上下边框
     top_bottom_border = '+' + '-' * text_length + '+'
-    # 为边框添加颜色
-    # colored_top_bottom = colored(top_bottom_border, box_color)
-    colored_top_bottom = colored(bold_start + top_bottom_border + bold_end, box_color)
-
-    # 生成中间文本行，包括左右边框
-    middle_line = "|" + padded_text + "|"
-
-    # 为文本和边框添加颜色
-    # colored_middle = colored(middle_line, text_color, 'on_' + box_color)
-    # colored_middle = colored(middle_line, text_color, attrs=['bold'])
-    colored_middle_text = colored(text, text_color, attrs=['bold'])
-
-    colored_middle = bold_start + colored("|", box_color) + colored_middle_text + colored("|", box_color) + bold_end
-
-
-    # colored_text = colored(text, color, attrs=['bold'])
-
+    
+    # 为边框添加颜色，并使其加粗
+    colored_top_bottom = colored(top_bottom_border, box_color, attrs=['bold'])
+    
+    # 生成中间文本行，包括左右边框，文本颜色和加粗
+    # 注意：由于colored函数不支持直接在文本两侧添加颜色不同的字符，我们需要分开处理
+    if text_background == True:
+        if background_color is not None:
+            middle_text = colored(padded_text, text_color, on_color=background_color, attrs=['bold'])
+        else:
+            middle_text = colored(padded_text, text_color, on_color='on_' + box_color, attrs=['bold'])
+    else: 
+        middle_text = colored(padded_text, text_color, attrs=['bold'])
+    left_border = colored("|", box_color, attrs=['bold'])
+    right_border = colored("|", box_color, attrs=['bold'])
+    
     # 打印彩色方框
     print(colored_top_bottom)
-    print(colored("|", box_color) + bold_start + " " + bold_end + colored_middle_text + bold_start + " " + bold_end + colored("|", box_color))
+    print(left_border + middle_text + right_border)
     print(colored_top_bottom)
 
 
-    
+  
 
 def model_convert_onnx(model, input_shape, output_path):
     dummy_input = torch.randn(1, 3, input_shape[0], input_shape[1])
@@ -283,7 +303,10 @@ def main():
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = "cpu"
     # onnx_path = '/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_20240202_152404_swin_repo_1.onnx'
-    onnx_path = "/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_20240219_162237_swin_repo_1.onnx"
+    # onnx_path = "/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_20240219_162237_swin_repo_1.onnx"
+    # onnx_path = "/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_20240219_170411_swin_repo_1_17.onnx"
+    # onnx_path = "/mnt/share_disk/cdd/export_onnx_models/swin_large_patch4_window12_384_20240219_185955_swin_repo_1_11.onnx"
+    onnx_path = "/mnt/share_disk/cdd/export_onnx_models/swin_large_patch4_window12_384_20240219_190019_swin_repo_1_17.onnx"
     args, config = parse_option()
     model = build_model(config)
     # model = create_model(num_classes=1000).to(device)
@@ -294,13 +317,12 @@ def main():
     
     count = 0
     total_count = 0
-    img_size = 224
+    img_size = 384
     data_transform = transforms.Compose(
         [transforms.Resize(int(img_size * 1.14)),
-        # [transforms.Resize(256),
-         transforms.CenterCrop(img_size),
-         transforms.ToTensor(),
-         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+        transforms.CenterCrop(img_size),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
     # load image
     eval_dir_path = "/mnt/share_disk/cdd/eval_data/imagenet/val"
@@ -336,43 +358,20 @@ def main():
             predict = torch.softmax(output, dim=0)
             predict_cla = torch.argmax(predict).numpy()
             if (label_truth == predict_cla):
-                count+=1
+                count += 1
             total_count += 1
         if total_count % 50 == 0 :
             print("Acc is %.3f "%(count / total_count))
             break
     
-    print_info('------------------------------------------------------------------------------\n'
-           '|                    ImageNet Dataset Evaluation Results                      |\n'
-           '|                                                                             |\n'
-           f'| the total img nums is {total_count}, the right predict num is {count}, acc is: {count / total_count:.3}         |\n'
-           '------------------------------------------------------------------------------', ['yellow', 'bold'])
+    print_colored_box_line('ImageNet Dataset Evaluation Results', f'the total img nums is {total_count}, the right predict num is {count}, acc is: {count / total_count:.3}')
     print_colored_box(f'the total img nums is {total_count}, the right predict num is {count}, acc is: {count / total_count:.3}', 'yellow', 'yellow')
-    # print_colored_box('Hello, World!', 'yellow', 'red')
+    # print_info('------------------------------------------------------------------------------\n'
+    #        '|                    ImageNet Dataset Evaluation Results                      |\n'
+    #        '|                                                                             |\n'
+    #        f'| the total img nums is {total_count}, the right predict num is {count}, acc is: {count / total_count:.3}         |\n'
+    #        '------------------------------------------------------------------------------', ['yellow', 'bold'])
 
-
-def print_colored_box_line(title, message, box_color='yellow', text_color='white'):
-    # 定义方框的宽度为终端的宽度，这里假定为80字符宽
-    box_width = 80
-    
-    # 创建顶部和底部的边框
-    horizontal_border = '+' + '-' * (box_width - 2) + '+'
-    colored_horizontal_border = colored(horizontal_border, box_color)
-    
-    # 创建标题和消息文本，使其居中
-    title_text = f"| {title.center(box_width - 4)} |"
-    message_text = f"| {message.center(box_width - 4)} |"
-    
-    # 添加颜色到文本
-    colored_title = colored(title_text, text_color, 'on_' + box_color)
-    colored_message = colored(message_text, text_color, 'on_' + box_color)
-    
-    # 打印方框
-    print(colored_horizontal_border)
-    print(colored_title)
-    print(colored_horizontal_border)
-    print(colored_message)
-    print(colored_horizontal_border)
 
 
 
@@ -380,7 +379,7 @@ def print_colored_box_line(title, message, box_color='yellow', text_color='white
 if __name__ == '__main__':
     # print_colored_box(' Hello, World! ')
     # print_colored_box('Hello, World!', 'blue')
-    # print_colored_box('Hello, World!', 'yellow', 'red')
+    print_colored_box('Evaluation Done!')
 
     main()
 

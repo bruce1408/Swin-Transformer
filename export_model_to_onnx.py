@@ -1,21 +1,11 @@
-# Copyright 2021 Huawei Technologies Co., Ltd
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-from collections import OrderedDict
 import sys
 import torch
 import datetime
+from collections import OrderedDict
+import warnings
+
+# 忽略所有的 UserWarning
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # sys.path.append('./Swin-Transformer')
 from models import build_model
@@ -33,7 +23,7 @@ def proc_nodes_module(checkpoint, AttrName):
     return new_state_dict
 
 
-def model_transfer(config):
+def model_transfer(args, config):
     batch_size = config.DATA.BATCH_SIZE
     print(batch_size)
     onnx_model = build_model(config)
@@ -43,7 +33,7 @@ def model_transfer(config):
     onnx_model.cpu()
     input_names = ["image"]
     output_names = ["class"]
-    dummy_input = torch.randn(batch_size, 3, 224, 224)
+    dummy_input = torch.randn(batch_size, 3, 384, 384)
     fp16 = False
     # if fp16:
     #     onnx_path = 'models/onnx/swin_tiny_bs' + str(batch_size) + '_fp16.onnx'
@@ -51,7 +41,8 @@ def model_transfer(config):
     #     onnx_path = 'models/onnx/swin_tiny_bs' + str(batch_size) + '.onnx'
     
     now = datetime.datetime.now()
-    onnx_path  = f"/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_{now.strftime('%Y%m%d_%H%M%S')}_swin_repo_" + str(batch_size)+ ".onnx"
+    # onnx_path  = f"/mnt/share_disk/cdd/export_onnx_models/swin_tiny_patch4_window7_224_{now.strftime('%Y%m%d_%H%M%S')}_swin_repo_" + str(batch_size)+ "_"+str(args.opset)+".onnx"
+    onnx_path  = f"/mnt/share_disk/cdd/export_onnx_models/swin_large_patch4_window12_384_{now.strftime('%Y%m%d_%H%M%S')}_swin_repo_" + str(batch_size)+ "_"+str(args.opset)+".onnx"
     
     torch.onnx.export(
         onnx_model, 
@@ -59,12 +50,12 @@ def model_transfer(config):
         onnx_path, 
         input_names=input_names,
         output_names=output_names, 
-        opset_version=11, 
+        opset_version=17, 
         verbose=False
         )
     print("model saved successful at ", onnx_path)
 
 
 if __name__ == '__main__':
-    _, main_config = parse_option()
-    model_transfer(main_config)
+    args, main_config = parse_option()
+    model_transfer(args, main_config)

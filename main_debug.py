@@ -33,28 +33,32 @@ from utils import load_checkpoint, load_pretrained, save_checkpoint, NativeScale
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer training and evaluation script', add_help=False)
-    parser.add_argument('--cfg', type=str, 
-                        default="/mnt/share_disk/cdd/Swin-Transformer/configs/swin/swin_tiny_patch4_window7_224.yaml",
-                        # required=True, 
-                        metavar="FILE", help='path to config file', )
     parser.add_argument(
-        "--opts",
-        help="Modify config options by adding 'KEY VALUE' pairs. ",
-        default=None,
-        nargs='+',
-    )
+                        "--opts",
+                        help="Modify config options by adding 'KEY VALUE' pairs. ",
+                        default=None,
+                        nargs='+',)
 
     # easy config modification
     parser.add_argument('--batch-size', type=int, default=1, help="batch size for single GPU")
     parser.add_argument('--data-path', type=str, default="/mnt/share_disk/cdd/eval_data/imagenet/", help='path to dataset')
     parser.add_argument('--zip', action='store_true', help='use zipped dataset instead of folder dataset')
-    parser.add_argument('--cache-mode', type=str, default='part', choices=['no', 'full', 'part'],
-                        help='no: no cache, '
-                             'full: cache all data, '
-                             'part: sharding the dataset into nonoverlapping pieces and only cache one piece')
+    parser.add_argument('--cache-mode', 
+                        type=str, 
+                        default='part', 
+                        choices=['no', 'full', 'part'],
+                        help='no: no cache, full: cache all data, part: sharding the dataset into nonoverlapping pieces and only cache one piece')
     parser.add_argument('--pretrained',
                         help='pretrained weight from checkpoint, could be imagenet22k pretrained weight')
-    parser.add_argument('--resume', default="/mnt/share_disk/cdd/pretrained_models/swin_tiny_patch4_window7_224.pth", help='resume from checkpoint')
+    parser.add_argument('--resume', 
+                        # default="/mnt/share_disk/cdd/pretrained_models/swin_tiny_patch4_window7_224.pth", 
+                        default="/mnt/share_disk/cdd/swin_large_patch4_window12_384_22kto1k.pth",
+                        help='resume from checkpoint')
+    parser.add_argument('--cfg', type=str, 
+                        # default="/mnt/share_disk/cdd/Swin-Transformer/configs/swin/swin_tiny_patch4_window7_224.yaml",
+                        default="/mnt/share_disk/cdd/Swin-Transformer/configs/swin/swin_large_patch4_window12_384_22kto1k_finetune.yaml",
+                        metavar="FILE", help='path to config file', )
+    
     parser.add_argument('--accumulation-steps', type=int, help="gradient accumulation steps")
     parser.add_argument('--use-checkpoint', action='store_true',
                         help="whether to use gradient checkpointing to save memory")
@@ -71,18 +75,17 @@ def parse_option():
 
     # distributed training
     parser.add_argument("--local_rank", type=int, 
-                        # required=True,
                         help='local rank for DistributedDataParallel')
-
     # for acceleration
     parser.add_argument('--fused_window_process', action='store_true',
                         help='Fused window shift & window partition, similar for reversed part.')
     parser.add_argument('--fused_layernorm', action='store_true', help='Use fused layernorm.')
-    ## overwrite optimizer in config (*.yaml) if specified, e.g., fused_adam/fused_lamb
-    parser.add_argument('--optim', type=str,
+    parser.add_argument('--optim', 
+                        type=str,
                         help='overwrite optimizer if provided, can be adamw/sgd/fused_adam/fused_lamb.')
     
     parser.add_argument("--dist", default=False, help="describe if use multi distribution to train/val")
+    parser.add_argument("--opset", default=17, help="opset version of onnx export model")
 
     args, unparsed = parser.parse_known_args()
 
